@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IDR Paraná – Jogo da Memória</title>
+
+  <style>
+    :root{
+      --idr-green: #2E7D32;
+      --idr-blue:  #0D47A1;
+      --idr-dark:  #0B1F2A;
+      --idr-light: #F5F7FA;
+      --idr-white: #FFFFFF;
+      --idr-border: rgba(11,31,42,.12);
+    }
+
+    #gameBackground{
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      z-index: -1;
+    }
+
+    body{
+      margin: 0;
+      height: 100vh;
+      padding: 16px 12px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: sans-serif;
+      overflow: hidden;
+      background: #ffffff;
+      color: var(--idr-dark);
+    }
+
+    .topbar{
+      width: min(860px, 96vw);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 6px 0 10px 0;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 0;
+    }
+
+    .brand img{
+      width: 140px;
+      height: auto;
+      display:block;
+    }
+
+    .player{
+      font-weight: 800;
+      color: var(--idr-dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 42vw;
+    }
+
+    .btn{
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 900;
+      cursor: pointer;
+      background: var(--idr-blue);
+      color: #fff;
+    }
+    .btn.secondary{
+      background: #fff;
+      color: var(--idr-blue);
+      border: 2px solid rgba(13,71,161,.55);
+    }
+
+    #progressContainer{
+      width: min(860px, 96vw);
+      background: #E5EDF2;
+      border-radius: 10px;
+      height: 15px;
+      margin: 6px 0 8px 0;
+      border: 1px solid var(--idr-border);
+    }
+    #progressBar{
+      height: 100%;
+      width: 100%;
+      background: var(--idr-green);
+      border-radius: 10px;
+    }
+
+    #timer{
+      width: min(860px, 96vw);
+      font-size: 1.2em;
+      margin: 0 0 10px 0;
+      color: var(--idr-dark);
+      text-align: center;
+      font-weight: 900;
+    }
+
+    .game{
+      width: min(860px, 96vw);
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(80px, 1fr));
+      gap: 10px;
+      padding: 12px;
+      background: #fff;
+      border: 1px solid var(--idr-border);
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(11,31,42,.08);
+      box-sizing: border-box;
+      align-content: start;
+      justify-items: stretch;
+      max-height: calc(100vh - 210px);
+    }
+
+    .card{
+      width: 100%;
+      padding-top: 100%;
+      position: relative;
+      border-radius: 12px;
+      cursor: pointer;
+      transform-style: preserve-3d;
+      transition: transform 0.5s;
+    }
+    .card.flip{ transform: rotateY(180deg); }
+    .card .front, .card .back{
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border-radius: 12px;
+    }
+    .card .front{
+      background: linear-gradient(135deg, var(--idr-blue), var(--idr-green));
+    }
+    .card .back{
+      transform: rotateY(180deg);
+      background-size: cover;
+      background-position: center;
+    }
+
+    #message{
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2.2em;
+      font-weight: 900;
+      color: var(--idr-dark);
+      text-shadow: 0 2px 12px rgba(0,0,0,0.18);
+      text-align: center;
+      z-index: 9999;
+      padding: 0 14px;
+    }
+
+    @media (max-width: 520px){
+      .brand img{ width: 120px; }
+      .game{ grid-template-columns: repeat(4, minmax(64px, 1fr)); }
+      .player{ max-width: 34vw; }
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+  <div id="gameBackground"></div>
+
+  <div class="topbar">
+    <div class="brand">
+      <img src="logo-inicio.png" alt="IDR Paraná">
+      <div class="player" id="playerLabel"></div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn secondary" onclick="voltarMenu()">⬅ Menu</button>
+      <button class="btn" onclick="reiniciar()">↻ Reiniciar</button>
+    </div>
+  </div>
+
+  <div id="progressContainer"><div id="progressBar"></div></div>
+  <div id="timer">Tempo restante: 90s</div>
+
+  <div class="game" id="game"></div>
+  <div id="message"></div>
+
+  <audio id="somAcerto" src="correct.mp3"></audio>
+  <audio id="somErro" src="erro.mp3"></audio>
+  <audio id="somFim" src="aplausos.mp3"></audio>
+  <audio id="somFimTempo" src="perdeu.mp3"></audio>
+
+  <script>
+    const images = Array.from({ length: 8 }, (_, i) => `img${i + 1}.png`);
+    const gameContainer = document.getElementById('game');
+    const messageEl = document.getElementById('message');
+    const somAcerto = document.getElementById('somAcerto');
+    const somErro = document.getElementById('somErro');
+    const somFim = document.getElementById('somFim');
+    const somFimTempo = document.getElementById('somFimTempo');
+
+    let firstCard = null, lock = false, startTime = null;
+    let tempoEncerrado = false;
+    let playerName = "";
+
+    function voltarMenu(){
+      window.location.href = "index.html";
+    }
+
+    function reiniciar(){
+      iniciarJogo();
+    }
+
+    function carregarNome(){
+      playerName = (localStorage.getItem('playerName') || "").trim();
+      if (!playerName) playerName = "Participante";
+      document.getElementById('playerLabel').innerText = playerName;
+    }
+
+    function iniciarJogo() {
+      carregarNome();
+      tempoEncerrado = false;
+
+      messageEl.textContent = '';
+      gameContainer.innerHTML = '';
+      firstCard = null;
+      lock = false;
+
+      let cards = [...images, ...images].sort(() => 0.5 - Math.random());
+      cards.forEach(src => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<div class="front"></div><div class="back" style="background-image: url('${src}')"></div>`;
+        card.onclick = () => flipCard(card);
+        gameContainer.appendChild(card);
+      });
+
+      // Mostra rapidamente as cartas
+      document.querySelectorAll('.card').forEach(card => card.classList.add('flip'));
+      setTimeout(() => document.querySelectorAll('.card').forEach(c => c.classList.remove('flip')), 2000);
+
+      startTime = Date.now();
+      clearInterval(window.cronometroInterval);
+
+      window.cronometroInterval = setInterval(() => {
+        const segundosRestantes = 90 - Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById('timer').innerText = `Tempo restante: ${segundosRestantes}s`;
+        document.getElementById('progressBar').style.width = `${(segundosRestantes / 90) * 100}%`;
+        document.getElementById('progressBar').style.background = segundosRestantes <= 10 ? '#C62828' : '#2E7D32';
+
+        if (segundosRestantes <= 0) {
+          try{ somFimTempo.play(); }catch(e){}
+          
+          clearInterval(window.cronometroInterval);
+          messageEl.innerText = "⏰ Tempo esgotado!";
+          tempoEncerrado = true;
+          messageEl.style.color = "#C62828";
+          setTimeout(() => voltarMenu(), 6000);
+        }
+      }, 1000);
+    }
+
+    function flipCard(card) {
+      if (tempoEncerrado) return;
+      if (lock || card.classList.contains('flip')) return;
+
+      card.classList.add('flip');
+
+      if (!firstCard) {
+        firstCard = card;
+      } else {
+        lock = true;
+
+        const img1 = firstCard.querySelector('.back').style.backgroundImage;
+        const img2 = card.querySelector('.back').style.backgroundImage;
+
+        if (img1 === img2) {
+          try{ somAcerto.play(); }catch(e){}
+          setTimeout(() => {
+            firstCard.style.visibility = 'hidden';
+            card.style.visibility = 'hidden';
+            resetTurn();
+            checkWin();
+          }, 450);
+        } else {
+          try{ somErro.play(); }catch(e){}
+          setTimeout(() => {
+            firstCard.classList.remove('flip');
+            card.classList.remove('flip');
+            resetTurn();
+          }, 800);
+        }
+      }
+    }
+
+    function resetTurn() { firstCard = null; lock = false; }
+
+    function checkWin() {
+      if ([...document.querySelectorAll('.card')].every(c => c.style.visibility === 'hidden')) {
+        clearInterval(window.cronometroInterval);
+        const tempo = Math.floor((Date.now() - startTime) / 1000);
+
+        try{ somFim.play(); }catch(e){}
+
+        messageEl.innerText = `Parabéns ${playerName}! Você completou em ${tempo} segundos! 🎉`;
+        messageEl.style.color = '#0B1F2A';
+
+        confetti({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.6 }
+        });setTimeout(() => voltarMenu(), 6000);
+      }
+    }
+window.onload = iniciarJogo;
+  </script>
+</body>
+</html>

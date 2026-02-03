@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IDR Paraná – Quiz</title>
+
+  <style>
+    :root{
+      --idr-green: #2E7D32;
+      --idr-blue:  #0D47A1;
+      --idr-dark:  #0B1F2A;
+      --idr-light: #F5F7FA;
+      --idr-white: #FFFFFF;
+      --idr-border: rgba(11,31,42,.12);
+      --danger: #C62828;
+    }
+
+    body{
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: #ffffff;
+      color: var(--idr-dark);
+      overflow: hidden;
+    }
+
+    /* Fundo opcional (coloque bg-inicio.png na pasta). Se não existir, fica branco. */
+    .bg{
+      position: fixed;
+      inset: 0;
+      background: url('bg-inicio.png') no-repeat center center;
+      background-size: cover;
+      z-index: -2;
+    }
+    .bg::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: rgba(255,255,255,.86);
+      z-index: -1;
+    }
+
+    .wrap{
+      width: min(900px, 94vw);
+    }
+
+    .topstripe{
+      height: 10px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--idr-blue), var(--idr-green));
+      margin-bottom: 12px;
+    }
+
+    .card{
+      background: rgba(255,255,255,.92);
+      border: 1px solid var(--idr-border);
+      border-radius: 18px;
+      box-shadow: 0 16px 40px rgba(11,31,42,.14);
+      padding: 18px 18px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .brand img{
+      width: 140px;
+      height: auto;
+      display:block;
+    }
+
+    .player{
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 42vw;
+    }
+
+    .btnrow{
+      display:flex;
+      gap:10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn{
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 900;
+      cursor: pointer;
+      background: var(--idr-blue);
+      color: #fff;
+    }
+    .btn.secondary{
+      background: #fff;
+      color: var(--idr-blue);
+      border: 2px solid rgba(13,71,161,.55);
+    }
+    .btn.green{ background: var(--idr-green); }
+    .btn:active{ transform: translateY(1px); }
+
+    .meta{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin: 10px 0 6px 0;
+    }
+
+    .pill{
+      background: #fff;
+      border: 1px solid var(--idr-border);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 800;
+    }
+
+    #progressContainer{
+      width: 100%;
+      background: #E5EDF2;
+      border-radius: 999px;
+      height: 14px;
+      border: 1px solid var(--idr-border);
+      overflow: hidden;
+      margin: 6px 0 14px 0;
+    }
+    #progressBar{
+      height: 100%;
+      width: 100%;
+      background: var(--idr-green);
+    }
+
+    .screen{ display:none; }
+    .screen.active{ display:block; }
+
+    .qtitle{
+      font-size: 1.25em;
+      font-weight: 900;
+      margin: 0 0 12px 0;
+    }
+
+    .answers{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .opt{
+      background: #fff;
+      border: 2px solid rgba(11,31,42,.12);
+      border-radius: 14px;
+      padding: 14px 14px;
+      cursor: pointer;
+      font-weight: 800;
+      min-height: 56px;
+      display:flex;
+      align-items:center;
+      justify-content: center;
+      text-align: center;
+      user-select: none;
+    }
+    .opt:hover{ border-color: rgba(13,71,161,.45); }
+
+    /* feedback só por cores */
+    .opt.correct{
+      border-color: rgba(46,125,50,.95);
+      background: rgba(46,125,50,.92);
+      color: #fff;
+      box-shadow: 0 0 0 4px rgba(46,125,50,.18);
+    }
+    .opt.wrong{
+      border-color: rgba(198,40,40,.95);
+      background: rgba(198,40,40,.92);
+      color: #fff;
+      box-shadow: 0 0 0 4px rgba(198,40,40,.18);
+    }
+
+    .feedback{ display:none; }
+
+    /* esconde navegação manual */
+    #nextBtn{ display:none !important; }
+    button[onclick="pular()"]{ display:none !important; }
+
+    /* QR */
+    .qrbox{
+      margin-top: 14px;
+      display:flex;
+      gap: 14px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px dashed rgba(11,31,42,.25);
+      background: rgba(255,255,255,.75);
+    }
+    .qrimg{
+      width: 180px;
+      height: 180px;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid rgba(11,31,42,.12);
+      padding: 8px;
+    }
+    .qrtext{
+      max-width: 420px;
+      text-align: left;
+    }
+    .qrtitle{
+      font-weight: 900;
+      margin: 0 0 6px 0;
+      color: var(--idr-blue);
+      font-size: 1.05em;
+    }
+    .qrlink{
+      font-weight: 800;
+      color: var(--idr-dark);
+      opacity: .92;
+      margin: 0;
+    }
+
+    @media (max-width: 700px){
+      .answers{ grid-template-columns: 1fr; }
+      .brand img{ width: 120px; }
+      .player{ max-width: 56vw; }
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+
+<body>
+  <div class="bg"></div>
+
+  <div class="wrap">
+    <div class="topstripe"></div>
+
+    <div class="card">
+      <div class="topbar">
+        <div class="brand">
+          <img src="logo-inicio.png" alt="IDR Paraná">
+          <div class="player" id="playerLabel"></div>
+        </div>
+
+        <div class="btnrow">
+          <button class="btn secondary" onclick="voltarMenu()">⬅ Menu</button>
+        </div>
+      </div>
+
+      <!-- QUIZ -->
+      <div id="screenQuiz" class="screen active">
+        <div class="meta">
+          <div class="pill">Pergunta <span id="qIndexLabel">1</span>/<span id="qTotalLabel">5</span></div>
+          <div class="pill">✅ Acertos: <span id="scoreLabel">0</span></div>
+          <div class="pill">⏱️ <span id="timeLabel">90</span>s</div>
+        </div>
+
+        <div id="progressContainer"><div id="progressBar"></div></div>
+
+        <div class="qtitle" id="qTitle"></div>
+        <div class="answers" id="answers"></div>
+
+        <!-- elementos mantidos (mas escondidos) -->
+        <div class="feedback" id="feedback"></div>
+        <button class="btn" id="nextBtn" onclick="nextQuestion()" disabled>Próxima ➜</button>
+      </div>
+
+      <!-- FIM -->
+      <div id="screenEnd" class="screen">
+        <h2>Fim do Quiz!</h2>
+        <p class="pill" style="display:inline-block;">Pontuação: <b><span id="finalScore">0</span></b> / <span id="finalTotal">0</span></p>
+        <p style="margin-top:10px;">Obrigado por participar.</p>
+
+        <div class="qrbox">
+          <!-- Substitua 'qrcode.png' pela imagem do QR Code (na mesma pasta do HTML) -->
+          <img class="qrimg" src="qrcode.png" alt="QR Code – Saiba mais" onerror="this.style.display='none'">
+          <div class="qrtext">
+            <p class="qrtitle">Saiba mais</p>
+            <p class="qrlink">Aponte a câmera do celular para o QR Code para acessar mais informações.</p>
+          </div>
+        </div>
+
+        <p class="pill" style="display:inline-block; margin-top:12px;">Voltando ao menu em <b><span id="endCountdown">10</span>s</b></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================
+    // CONFIGURAÇÕES DO QUIZ
+    // =========================
+    const QUIZ_TIME_SECONDS = 90;
+    const QUESTIONS_PER_GAME = 5;
+    const ANSWER_REVEAL_MS = 2000;
+
+    // Banco de perguntas (IDR Paraná / Biometano / Corredores Sustentáveis / Smart City)
+    const QUESTOES_POOL = [
+      { q: "O que é o biometano?", a: ["Um combustível renovável obtido a partir do biogás purificado","Um tipo de gasolina aditivada","Um fertilizante líquido","Um óleo vegetal para motores"], correct: 0 },
+      { q: "O biometano é quimicamente idêntico a qual combustível?", a: ["Gás natural","Diesel","Etanol","Carvão mineral"], correct: 0 },
+      { q: "Qual é a principal diferença entre gás natural e biometano?", a: ["A origem: gás natural é fóssil e o biometano vem de resíduos orgânicos","O biometano só pode ser usado em carros elétricos","O gás natural não pode ser transportado","O biometano não pode ser armazenado"], correct: 0 },
+      { q: "O biometano pode ser produzido a partir de quais fontes?", a: ["Dejetos de suínos, frangos e bovinos, vinhaça de cana e aterros sanitários","Apenas petróleo","Apenas água do mar","Somente carvão mineral"], correct: 0 },
+      { q: "No Projeto Corredores Rodoviários Sustentáveis, o biometano será usado principalmente para:", a: ["Movimentar frotas rodoviárias ligadas ao campo","Substituir o asfalto das rodovias","Gerar energia apenas para residências urbanas","Aumentar o consumo de diesel"], correct: 0 },
+
+      { q: "Um benefício apontado do biometano é reduzir emissões de CO₂ em comparação ao diesel em cerca de:", a: ["95% a menos","10% a menos","50% a mais","Não há diferença"], correct: 0 },
+      { q: "A malha inicial dos Corredores Rodoviários Sustentáveis prevê cerca de:", a: ["4.586 km de estradas","458,6 km de estradas","45.860 km de estradas","1.000 km de estradas"], correct: 0 },
+      { q: "Esses corredores cruzam aproximadamente:", a: ["147 municípios","47 municípios","1.470 municípios","15 municípios"], correct: 0 },
+      { q: "Além dos municípios do corredor, outras cidades são beneficiadas por estarem em um raio de até 20 km. Quantas?", a: ["159 cidades","59 cidades","19 cidades","1.590 cidades"], correct: 0 },
+      { q: "A primeira rota operacional citada liga quais municípios?", a: ["Londrina e Paranaguá","Curitiba e Maringá","Foz do Iguaçu e Guarapuava","Ponta Grossa e Cascavel"], correct: 0 },
+
+      { q: "O biometano pode ser usado diretamente em veículos e também pode ser:", a: ["Injetado nas redes de gás natural operadas pela Compagas","Misturado obrigatoriamente com gasolina","Usado apenas em geradores estacionários","Convertido em eletricidade dentro do tanque"], correct: 0 },
+      { q: "Segundo as notícias, o custo do quilômetro rodado pode cair em até quanto com biometano puro?", a: ["60%","6%","20%","90%"], correct: 0 },
+      { q: "Um benefício no campo é transformar passivos ambientais (dejetos, resíduos, efluentes) em:", a: ["Energia e ativo econômico, promovendo economia circular","Apenas mais lixo","Somente água potável","Apenas asfalto"], correct: 0 },
+      { q: "O Brasil e o Paraná têm compromisso de reduzir emissões de metano até:", a: ["2030","2026","2040","2050"], correct: 0 },
+      { q: "No texto, o metano é citado como gás até quantas vezes mais agressivo que o CO₂?", a: ["21 vezes","2 vezes","10 vezes","100 vezes"], correct: 0 },
+
+      { q: "Qual programa do Paraná é citado como apoio à implantação de biodigestores (financiamento/equalização de juros)?", a: ["RenovaPR","SUSAF","Minha Casa Minha Vida","Nota Paraná"], correct: 0 },
+      { q: "A Superintendência de Energia do Paraná (SUPEN) é citada como responsável por:", a: ["Coordenar a estratégia estadual de transição energética","Operar aeroportos","Fiscalizar rodovias federais","Gerenciar escolas estaduais"], correct: 0 },
+      { q: "A evolução do conceito foi: corredor verde (eletrovias), corredor azul (gás natural) e hoje:", a: ["Corredor sustentável","Corredor roxo","Corredor marítimo","Corredor agrícola"], correct: 0 },
+      { q: "O Smart City Expo Curitiba 2025 é descrito como:", a: ["O maior evento de cidades inteligentes da América do Sul","Um evento exclusivo de esportes","Um encontro apenas de turismo","Uma feira de moda"], correct: 0 },
+      { q: "O projeto Casa Rural Sustentável prevê construir casas em:", a: ["Madeira engenheirada, com madeira de florestas plantadas","Concreto armado importado","Vidro e aço apenas","Bambu exclusivamente"], correct: 0 }
+    ];
+
+    // =========================
+    // ESTADO
+    // =========================
+    let QUESTOES = []; // perguntas da partida
+    let idx = 0;
+    let score = 0;
+    let canAnswer = true;
+    let timer = null;
+    let endTimer = null;
+    let startTime = 0;
+
+    // =========================
+    // HELPERS
+    // =========================
+    function $(id){ return document.getElementById(id); }
+
+    function setScreen(which){
+      ["screenQuiz","screenEnd"].forEach(s => $(s).classList.remove("active"));
+      $(which).classList.add("active");
+    }
+
+    function shuffleArray(arr){
+      for(let i = arr.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function prepararPartida(){
+      const pool = QUESTOES_POOL.slice();
+      shuffleArray(pool);
+      const n = Math.min(QUESTIONS_PER_GAME, pool.length);
+      QUESTOES = pool.slice(0, n);
+      $("qTotalLabel").innerText = String(n);
+    }
+
+    function carregarNome(){
+      let name = (localStorage.getItem("playerName") || "").trim();
+      if(!name) name = "Participante";
+      $("playerLabel").innerText = name;
+    }
+
+    function voltarMenu(){
+      // robusto: tenta voltar pelo histórico; se não, vai para index.html
+      try{
+        if (document.referrer && document.referrer.length > 0) {
+          window.history.back();
+          return;
+        }
+      }catch(e){}
+      window.location.href = "index.html";
+    }
+
+    // =========================
+    // QUIZ
+    // =========================
+    function renderQuestion(){
+      canAnswer = true;
+
+      const item = QUESTOES[idx];
+      $("qIndexLabel").innerText = String(idx + 1);
+      $("scoreLabel").innerText = String(score);
+      $("qTitle").innerText = item.q;
+
+      const answers = $("answers");
+      answers.innerHTML = "";
+
+      // embaralha alternativas mantendo a correta
+      const bag = item.a.map((txt, i) => ({ txt, isCorrect: i === item.correct }));
+      shuffleArray(bag);
+
+      bag.forEach((opt) => {
+        const div = document.createElement("div");
+        div.className = "opt";
+        div.innerText = opt.txt;
+        div.dataset.correct = opt.isCorrect ? "1" : "0";
+        div.onclick = () => choose(div);
+        answers.appendChild(div);
+      });
+    }
+
+    function choose(el){
+      if(!canAnswer) return;
+      canAnswer = false;
+
+      const opts = [...document.querySelectorAll(".opt")];
+      const correctEl = opts.find(o => o.dataset.correct === "1");
+      if (correctEl) correctEl.classList.add("correct");
+
+      if(el.dataset.correct !== "1"){
+        el.classList.add("wrong");
+      } else {
+        score += 1;
+        $("scoreLabel").innerText = String(score);
+      }
+
+      setTimeout(() => {
+        if(idx < QUESTOES.length - 1){
+          idx += 1;
+          renderQuestion();
+        } else {
+          finish(false);
+        }
+      }, ANSWER_REVEAL_MS);
+    }
+
+    function startTimer(){
+      startTime = Date.now();
+      clearInterval(timer);
+
+      timer = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const remaining = Math.max(0, QUIZ_TIME_SECONDS - elapsed);
+
+        $("timeLabel").innerText = String(remaining);
+        $("progressBar").style.width = ((remaining / QUIZ_TIME_SECONDS) * 100) + "%";
+        $("progressBar").style.background = remaining <= 10 ? "var(--danger)" : "var(--idr-green)";
+
+        if(remaining <= 0){
+          clearInterval(timer);
+          finish(true);
+        }
+      }, 250);
+    }
+
+    function startQuiz(){
+      clearInterval(timer);
+      clearInterval(endTimer);
+
+      prepararPartida();
+      idx = 0;
+      score = 0;
+
+      setScreen("screenQuiz");
+      renderQuestion();
+
+      $("timeLabel").innerText = String(QUIZ_TIME_SECONDS);
+      startTimer();
+    }
+
+    function finish(byTimeout){
+      clearInterval(timer);
+      clearInterval(endTimer);
+
+      setScreen("screenEnd");
+      $("finalScore").innerText = String(score);
+      $("finalTotal").innerText = String(QUESTOES.length);
+
+      // confetti
+      try{
+        confetti({
+          particleCount: byTimeout ? 80 : 160,
+          spread: 90,
+          origin: { y: 0.65 }
+        });
+      }catch(e){}
+
+      // countdown 10s -> menu
+      let remaining = 10;
+      const el = $("endCountdown");
+      if(el) el.innerText = String(remaining);
+
+      endTimer = setInterval(() => {
+        remaining -= 1;
+        if(el) el.innerText = String(Math.max(0, remaining));
+        if(remaining <= 0){
+          clearInterval(endTimer);
+          voltarMenu();
+        }
+      }, 1000);
+    }
+
+    // init (auto start)
+    window.onload = () => {
+      carregarNome();
+      startQuiz();
+    };
+  </script>
+</body>
+</html>

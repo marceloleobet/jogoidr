@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IDR Paraná – Jogos Educativos</title>
+  <style>
+#gameBackground {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #ffffff;
+  z-index: -1;
+  display: none;
+}
+    body {
+  flex-direction: column;
+  max-height: 80vh;
+  padding: 20px;
+  box-sizing: border-box;
+      margin: 0; background: #ffffff; display: flex; justify-content: center;
+      align-items: center;
+  padding-top: 30px; height: 80vh; flex-direction: column;
+      font-family: sans-serif; overflow: hidden;
+    
+  color: #0B1F2A;
+}
+    .game {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      width: 100%;
+      height: 60vh;
+      padding: 10px;
+      max-width: 600px;
+
+      display: grid; grid-template-columns: repeat(4, minmax(80px, 1fr));
+      gap: 10px; max-width: 90vw; max-height: 70vh;
+    }
+    .card { width: 100%; padding-top: 100%; position: relative;
+      border-radius: 10px; cursor: pointer; transform-style: preserve-3d;
+      transition: transform 0.5s; }
+    .card.flip { transform: rotateY(180deg); }
+    .card .front, .card .back {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      backface-visibility: hidden; border-radius: 10px;
+    }
+    .card .front { background: #00bcd4; }
+    .card .back {
+      transform: rotateY(180deg);
+      background-size: cover; background-position: center;
+    }
+    #startScreen {
+  margin: 0 auto;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+
+  /* Fundo com imagem (coloque o arquivo na mesma pasta do HTML) */
+  background: url('bg-inicio.png') no-repeat center center;
+  background-size: cover;
+
+  display: flex; flex-direction: column; justify-content: center;
+  align-items: center;
+  padding-top: 30px;
+  color: #0B1F2A;
+  font-size: 1.2em;
+  z-index: 3;
+}
+
+/* Camada branca para manter leitura e "cara" institucional */
+#startScreen::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  /* sem overlay: imagem 100% visível */
+  background: rgba(255,255,255,0);
+}
+
+/* Faixa institucional no topo */
+#startScreen::before{
+  content:"";
+  position:absolute;
+  top:0; left:0; right:0;
+  height:10px;
+  background: linear-gradient(90deg, #0D47A1, #2E7D32);
+  z-index: 1;
+}
+
+/* Conteúdo acima das camadas */
+#startScreen > * { position: relative; z-index: 2; }
+    #startScreen input {
+  font-size: 1.2em;
+  width: 300px;
+      font-size: 1em; padding: 10px; margin: 5px 0;
+      border-radius: 10px; border: none; width: 250px;
+    }
+    .option-btn {
+      padding: 10px 20px; margin: 5px; border: 2px solid #007f94;
+      background: white; color: #007f94; border-radius: 8px; cursor: pointer;
+    }
+    .option-btn.selected { background: #007f94; color: white; }
+    
+#message {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2.5em;
+  font-weight: bold;
+  color: #0B1F2A;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.18);
+  text-align: center;
+  z-index: 9999;
+}
+
+    #ranking {
+      margin-top: 10px; font-size: 1.2em;
+      text-align: center; color: #003f54;
+    }
+    #ranking ol { padding-left: 20px; margin-top: 0; }
+    button {
+  font-size: 1.2em;
+  padding: 15px 25px;
+      margin-top: 15px; padding: 10px 20px; font-size: 1em;
+      border: none; border-radius: 10px;
+      background: #007f94; color: white; cursor: pointer;
+    }
+    #progressContainer {
+      width: 90vw; background: #E5EDF2; border-radius: 10px;
+      height: 15px; margin: 10px; border: 1px solid rgba(11,31,42,.12);
+    }
+    #progressBar {
+      height: 100%; width: 100%;
+      background: #007f94; border-radius: 10px;
+    }
+  
+/* --- Menu Inicial (Nome + Escolha do jogo) --- */
+.start-card{
+  width: min(520px, 92vw);
+  padding: 22px 18px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.90);
+  border: 1px solid rgba(11,31,42,.12);
+  box-shadow: 0 10px 28px rgba(11,31,42,.20);
+}
+
+.start-title{
+  margin: 0 0 6px 0;
+  font-size: 1.6em;
+  font-weight: 800;
+  color: #0B1F2A;
+}
+
+.start-subtitle{
+  margin: 0 0 14px 0;
+  opacity: .95;
+  color: #0B1F2A;
+}
+
+.mode-buttons{
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.mode-btn{
+  min-width: 240px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  font-size: 1.05em;
+  font-weight: 700;
+}
+
+.mode-btn.primary{
+  background: #007f94;
+}
+
+.mode-btn.secondary{
+  background: rgba(255,255,255,.95);
+  color: #003f54;
+  border: 2px solid rgba(0,127,148,.65);
+}
+.mode-btn.secondary:hover{
+  background: #ffffff;
+}
+
+@media (max-width: 520px){
+  .mode-btn{ min-width: 100%; }
+}
+
+  </style>
+<script src="confetti.browser.min.js"></script>
+</head>
+<body>
+  <div id="gameBackground"></div>
+
+  <img src="logo.png" alt="Logo do Cliente" style="width: 200px; margin: 20px auto;">
+
+  <div id="startScreen">
+  <!-- Menu inicial -->
+  <div class="start-card">
+    <h2 class="start-title">Bem-vindo!</h2>
+    <p class="start-subtitle">Digite seu nome e escolha uma opção:</p>
+
+    <input type="text" id="playerName" placeholder="Nome completo" autocomplete="name">
+
+    <div class="mode-buttons">
+      <button class="mode-btn primary" onclick="startMemoryFromMenu()">Jogo da Memória</button>
+      <button class="mode-btn primary" onclick="startQuizFromMenu()">Jogo do Quiz</button>
+    </div>
+</div>
+</div>
+
+  <!-- Menu inicial apenas: os jogos ficam em páginas separadas -->
+
+  <script>
+    let playerName = "";
+
+    function startMemoryFromMenu() {
+      playerName = document.getElementById('playerName').value.trim();
+
+      if (!playerName) {
+        alert("Por favor, informe seu nome!");
+        return;
+      }
+
+      localStorage.setItem('playerName', playerName);
+      window.location.href = 'memoria.html';
+    }
+
+    function startQuizFromMenu() {
+      playerName = document.getElementById('playerName').value.trim();
+
+      if (!playerName) {
+        alert("Por favor, informe seu nome!");
+        return;
+      }
+
+      localStorage.setItem('playerName', playerName);
+      window.location.href = 'quiz.html';
+    }
+
+    </script>
+</body>
+</html>
