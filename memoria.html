@@ -205,6 +205,44 @@
     const somFim = document.getElementById('somFim');
     const somFimTempo = document.getElementById('somFimTempo');
 
+    function playSfx(audioEl){
+      if (!audioEl) return;
+      try{
+        audioEl.pause();
+        audioEl.currentTime = 0;
+        const p = audioEl.play();
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      }catch(e){}
+    }
+
+    function unlockAudioOnce(){
+      const audios = [somAcerto, somErro, somFim, somFimTempo];
+      audios.forEach(a => {
+        if (!a) return;
+        try{
+          const oldVol = a.volume;
+          a.volume = 0;
+          const p = a.play();
+          if (p && typeof p.then === "function"){
+            p.then(() => {
+              a.pause();
+              a.currentTime = 0;
+              a.volume = oldVol;
+            }).catch(() => {
+              a.volume = oldVol;
+            });
+          } else {
+            a.pause();
+            a.currentTime = 0;
+            a.volume = oldVol;
+          }
+        }catch(e){}
+      });
+    }
+
+    window.addEventListener('pointerdown', unlockAudioOnce, { once: true });
+    window.addEventListener('touchstart', unlockAudioOnce, { once: true });
+
     let firstCard = null, lock = false, startTime = null;
     let tempoEncerrado = false;
     let playerName = "";
@@ -255,7 +293,7 @@
         document.getElementById('progressBar').style.background = segundosRestantes <= 10 ? '#C62828' : '#2E7D32';
 
         if (segundosRestantes <= 0) {
-          try{ somFimTempo.play(); }catch(e){}
+          playSfx(somFimTempo);
           
           clearInterval(window.cronometroInterval);
           messageEl.innerText = "⏰ Tempo esgotado!";
@@ -281,7 +319,7 @@
         const img2 = card.querySelector('.back').style.backgroundImage;
 
         if (img1 === img2) {
-          try{ somAcerto.play(); }catch(e){}
+          playSfx(somAcerto);
           setTimeout(() => {
             firstCard.style.visibility = 'hidden';
             card.style.visibility = 'hidden';
@@ -289,7 +327,7 @@
             checkWin();
           }, 450);
         } else {
-          try{ somErro.play(); }catch(e){}
+          playSfx(somErro);
           setTimeout(() => {
             firstCard.classList.remove('flip');
             card.classList.remove('flip');
@@ -306,7 +344,7 @@
         clearInterval(window.cronometroInterval);
         const tempo = Math.floor((Date.now() - startTime) / 1000);
 
-        try{ somFim.play(); }catch(e){}
+        playSfx(somFim);
 
         messageEl.innerText = `Parabéns ${playerName}! Você completou em ${tempo} segundos! 🎉`;
         messageEl.style.color = '#0B1F2A';
