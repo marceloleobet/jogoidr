@@ -303,6 +303,12 @@
     </div>
   </div>
 
+  <!-- SONS (coloque os MP3 na mesma pasta do HTML) -->
+  <audio id="somAcerto" src="correct.mp3" preload="auto"></audio>
+  <audio id="somErro" src="erro.mp3" preload="auto"></audio>
+  <audio id="somAplausos" src="aplausos.mp3" preload="auto"></audio>
+
+
   <script>
     // =========================
     // CONFIGURAÇÕES DO QUIZ
@@ -348,6 +354,46 @@
     let timer = null;
     let endTimer = null;
     let startTime = 0;
+
+    // =========================
+    // SONS (SFX)
+    // =========================
+    const somAcerto = document.getElementById("somAcerto");
+    const somErro = document.getElementById("somErro");
+    const somAplausos = document.getElementById("somAplausos");
+
+    function playSfx(audioEl){
+      if(!audioEl) return;
+      try{
+        audioEl.pause();
+        audioEl.currentTime = 0;
+        const p = audioEl.play();
+        if(p && typeof p.catch === "function") p.catch(() => {});
+      }catch(e){}
+    }
+
+    // Desbloqueia áudio no primeiro toque/clique (Chrome/Android)
+    function unlockAudioOnce(){
+      [somAcerto, somErro, somAplausos].forEach(a => {
+        if(!a) return;
+        try{
+          a.volume = 0;
+          const p = a.play();
+          if(p && typeof p.then === "function"){
+            p.then(() => { a.pause(); a.currentTime = 0; a.volume = 1; })
+             .catch(() => { a.volume = 1; });
+          } else {
+            a.pause(); a.currentTime = 0; a.volume = 1;
+          }
+        }catch(e){}
+      });
+
+      window.removeEventListener("pointerdown", unlockAudioOnce);
+      window.removeEventListener("touchstart", unlockAudioOnce);
+    }
+
+    window.addEventListener("pointerdown", unlockAudioOnce, { once: true });
+    window.addEventListener("touchstart", unlockAudioOnce, { once: true });
 
     // =========================
     // HELPERS
@@ -430,9 +476,11 @@
 
       if(el.dataset.correct !== "1"){
         el.classList.add("wrong");
+        playSfx(somErro);
       } else {
         score += 1;
         $("scoreLabel").innerText = String(score);
+        playSfx(somAcerto);
       }
 
       setTimeout(() => {
@@ -486,6 +534,10 @@
       setScreen("screenEnd");
       $("finalScore").innerText = String(score);
       $("finalTotal").innerText = String(QUESTOES.length);
+
+
+      // som de fim
+      playSfx(somAplausos);
 
       // confetti
       try{
