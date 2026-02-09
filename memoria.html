@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IDR Paraná – Jogo da Memória</title>
-
   <style>
     :root{
       --idr-green: #2E7D32;
@@ -205,6 +204,25 @@
     const somFim = document.getElementById('somFim');
     const somFimTempo = document.getElementById('somFimTempo');
 
+    
+    async function preloadImages(srcList){
+      const uniq = Array.from(new Set(srcList));
+      await Promise.all(uniq.map(src => new Promise((res) => {
+        const im = new Image();
+        im.onload = () => res(true);
+        im.onerror = () => res(false);
+        im.src = src;
+      })));
+    }
+function stopAllAudio(){
+      const ids = ['somAcerto','somErro','somFim','somFimTempo'];
+      ids.forEach(id => {
+        const a = document.getElementById(id);
+        if (!a) return;
+        try{ a.pause(); a.currentTime = 0; }catch(e){}
+      });
+    }
+
     function playSfx(audioEl){
       if (!audioEl) return;
       try{
@@ -248,11 +266,15 @@
     let playerName = "";
 
     function voltarMenu(){
-      window.location.href = "index.html";
+      // Finaliza o jogo ao sair
+      try{ clearInterval(window.cronometroInterval); }catch(e){}
+      tempoEncerrado = true;
+      try{ stopAllAudio(); }catch(e){}
+      try{ parent.postMessage({type:'goMenu'}, '*'); }catch(e){}
     }
 
-    function reiniciar(){
-      iniciarJogo();
+    async function reiniciar(){
+      await iniciarJogo();
     }
 
     function carregarNome(){
@@ -261,7 +283,7 @@
       document.getElementById('playerLabel').innerText = playerName;
     }
 
-    function iniciarJogo() {
+    async function iniciarJogo() {
       carregarNome();
       tempoEncerrado = false;
 
@@ -269,6 +291,9 @@
       gameContainer.innerHTML = '';
       firstCard = null;
       lock = false;
+
+      // Pré-carrega as imagens para evitar que o "preview" apareça em branco na 1ª vez
+      await preloadImages(images);
 
       let cards = [...images, ...images].sort(() => 0.5 - Math.random());
       cards.forEach(src => {
@@ -280,6 +305,7 @@
       });
 
       // Mostra rapidamente as cartas
+      await new Promise(r => setTimeout(r, 50));
       document.querySelectorAll('.card').forEach(card => card.classList.add('flip'));
       setTimeout(() => document.querySelectorAll('.card').forEach(c => c.classList.remove('flip')), 2000);
 

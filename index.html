@@ -191,7 +191,25 @@
 }
 
   
-/* --- Rodapé fixo (botão tela cheia à esquerda) --- */
+/* --- Navegação por telas (menu + iframes) --- */
+.screen{ display:none; width:100%; height:100%; }
+.screen.active{ display:block; }
+
+.iframe-wrap{
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  border: 0;
+  background: #fff;
+}
+.iframe-wrap iframe{
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Rodapé fixo (botão tela cheia à esquerda) */
 #footerBar{
   position: fixed;
   left: 0; right: 0;
@@ -199,8 +217,8 @@
   display: flex;
   justify-content: flex-start;
   padding: 0 12px;
-  z-index: 20;
-  pointer-events: none; /* só o botão recebe clique */
+  z-index: 10000;
+  pointer-events: none;
 }
 #fullscreenBtn{
   pointer-events: auto;
@@ -212,49 +230,105 @@
   border: 2px solid rgba(0,127,148,.65);
 }
 #fullscreenBtn:active{ transform: scale(0.98); }
+</style>
 
-  </style>
-<script src="confetti.browser.min.js"></script>
 </head>
 <body>
-  <div id="gameBackground"></div>
 
-  <img src="logo.png" alt="Logo do Cliente" style="width: 200px; margin: 20px auto;">
+  <div id="screenMenu" class="screen active">
+    <div id="gameBackground"></div>
 
-  <div id="startScreen">
-  <!-- Menu inicial -->
-  <div class="start-card">
-    <h2 class="start-title">Bem-vindo!</h2>
-    <p class="start-subtitle">Digite seu nome (opcional) e escolha uma opção:</p>
+    <img src="logo.png" alt="Logo do Cliente" style="width: 200px; margin: 20px auto;">
 
-    <input type="text" id="playerName" placeholder="Nome (opcional)" autocomplete="name">
+    <div id="startScreen">
+      <div class="start-card">
+        <h2 class="start-title">Bem-vindo!</h2>
+        <p class="start-subtitle">Digite seu nome (opcional) e escolha uma opção:</p>
 
-    <div class="mode-buttons">
-      <button class="mode-btn primary" onclick="startMemoryFromMenu()">Jogo da Memória</button>
-      <button class="mode-btn primary" onclick="startQuizFromMenu()">Jogo do Quiz</button>
+        <input type="text" id="playerName" placeholder="Nome (opcional)" autocomplete="name">
+
+        <div class="mode-buttons">
+          <button class="mode-btn primary" onclick="startMemory()">Jogo da Memória</button>
+          <button class="mode-btn primary" onclick="startQuiz()">Jogo do Quiz</button>
+        </div>
+      </div>
     </div>
-</div>
-</div>
+  </div>
 
-  <!-- Menu inicial apenas: os jogos ficam em páginas separadas -->
+  <div id="screenMemory" class="screen">
+    <div class="iframe-wrap">
+      <iframe id="frameMemory" src="memoria.html" allow="fullscreen"></iframe>
+    </div>
+  </div>
+
+  <div id="screenQuiz" class="screen">
+    <div class="iframe-wrap">
+      <iframe id="frameQuiz" src="quiz.html" allow="fullscreen"></iframe>
+    </div>
+  </div>
 
   <!-- Rodapé -->
   <div id="footerBar">
     <button id="fullscreenBtn" type="button" onclick="toggleFullscreen()">Tela cheia</button>
   </div>
 
-  <script>
-    let playerName = "";
 
+  <script>
+    // ===== Nome opcional =====
     function saveOptionalName(){
-      playerName = document.getElementById('playerName').value.trim();
-      if (playerName) {
-        localStorage.setItem('playerName', playerName);
-      } else {
-        localStorage.removeItem('playerName');
-      }
+      const v = (document.getElementById('playerName')?.value || "").trim();
+      if (v) localStorage.setItem('playerName', v);
+      else localStorage.removeItem('playerName');
     }
 
+    // ===== Navegação por telas =====
+    function show(id){
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const el = document.getElementById(id);
+      if (el) el.classList.add('active');
+    }
+
+    function startMemory(){
+      saveOptionalName();
+      restoreIframes();
+      show('screenMemory');
+      // garante recarregar o jogo para resetar (opcional)
+      const fr = document.getElementById('frameMemory');
+      if (fr) fr.contentWindow?.location?.reload?.();
+    }
+
+    function startQuiz(){
+      saveOptionalName();
+      restoreIframes();
+      show('screenQuiz');
+      const fr = document.getElementById('frameQuiz');
+      if (fr) fr.contentWindow?.location?.reload?.();
+    }
+
+    function resetIframes(){
+  const mem = document.getElementById('frameMemory');
+  const quiz = document.getElementById('frameQuiz');
+  // descarrega para parar timers/áudio
+  if (mem) mem.src = 'about:blank';
+  if (quiz) quiz.src = 'about:blank';
+}
+
+function restoreIframes(){
+  const mem = document.getElementById('frameMemory');
+  const quiz = document.getElementById('frameQuiz');
+  if (mem && mem.src.endsWith('about:blank')) mem.src = 'memoria.html';
+  if (quiz && quiz.src.endsWith('about:blank')) quiz.src = 'quiz.html';
+}
+
+// Recebe pedido de "voltar menu" vindo dos iframes
+    window.addEventListener('message', (ev) => {
+  if (ev?.data?.type === 'goMenu') {
+    resetIframes();
+    show('screenMenu');
+  }
+});
+
+    // ===== Tela cheia (botão) =====
     function _fsElement(){
       return document.fullscreenElement || document.webkitFullscreenElement || null;
     }
@@ -266,23 +340,21 @@
       const fn = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
       return fn ? fn.call(document) : null;
     }
-
     async function toggleFullscreen(){
       try{
-        if (!_fsElement()) {
+        if (!_fsElement()){
           const r = _requestFullscreen(document.documentElement);
           if (r && typeof r.then === "function") await r;
         } else {
           const r = _exitFullscreen();
           if (r && typeof r.then === "function") await r;
         }
-      } catch (e) {
-        console.warn("Fullscreen não suportado ou bloqueado:", e);
+      }catch(e){
+        console.warn("Fullscreen bloqueado:", e);
         alert("Não foi possível ativar a tela cheia nesse navegador/ambiente.");
       }
       updateFullscreenButton();
     }
-
     function updateFullscreenButton(){
       const btn = document.getElementById('fullscreenBtn');
       if (!btn) return;
@@ -291,16 +363,6 @@
     document.addEventListener('fullscreenchange', updateFullscreenButton);
     document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
     window.addEventListener('load', updateFullscreenButton);
-
-    function startMemoryFromMenu() {
-      saveOptionalName();
-      window.location.href = 'memoria.html';
-    }
-
-    function startQuizFromMenu() {
-      saveOptionalName();
-      window.location.href = 'quiz.html';
-    }
   </script>
 
 </body>

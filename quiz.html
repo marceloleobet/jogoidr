@@ -362,6 +362,15 @@
     const somErro = document.getElementById("somErro");
     const somAplausos = document.getElementById("somAplausos");
 
+    function stopAllAudio(){
+      const ids = ['somAcerto','somErro','somAplausos'];
+      ids.forEach(id => {
+        const a = document.getElementById(id);
+        if (!a) return;
+        try{ a.pause(); a.currentTime = 0; }catch(e){}
+      });
+    }
+
     function playSfx(audioEl){
       if(!audioEl) return;
       try{
@@ -569,5 +578,17 @@
       startQuiz();
     };
   </script>
+
+<script>
+  // Override: voltar para o menu do index (pai) quando estiver embutido em iframe
+  function voltarMenu(){
+    // Finaliza o quiz ao sair
+    try{ clearInterval(timer); }catch(e){}
+    try{ clearInterval(endTimer); }catch(e){}
+    try{ stopAllAudio(); }catch(e){}
+    try{ parent.postMessage({type:'goMenu'}, '*'); }catch(e){}
+  }
+</script>
+
 </body>
 </html>
