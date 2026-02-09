@@ -299,10 +299,18 @@
 
     function startQuiz(){
       saveOptionalName();
-      restoreIframes();
       show('screenQuiz');
       const fr = document.getElementById('frameQuiz');
-      if (fr) fr.contentWindow?.location?.reload?.();
+      if (!fr) return;
+
+      // Se o iframe foi descarregado (about:blank), apenas restaura e aguarda carregar.
+      if (fr.src && fr.src.endsWith('about:blank')) {
+        fr.src = 'quiz.html';
+        return;
+      }
+
+      // Se já está carregado, pode recarregar para resetar
+      try { fr.contentWindow.location.reload(); } catch(e) {}
     }
 
     function resetIframes(){
