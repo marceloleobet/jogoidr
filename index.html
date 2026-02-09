@@ -275,6 +275,9 @@
 
   <script>
     // ===== Nome opcional =====
+    const MEMORY_SRC = 'memoria.html';
+    const QUIZ_SRC = 'quiz.html';
+
     function saveOptionalName(){
       const v = (document.getElementById('playerName')?.value || "").trim();
       if (v) localStorage.setItem('playerName', v);
@@ -290,42 +293,33 @@
 
     function startMemory(){
       saveOptionalName();
-      restoreIframes();
-      show('screenMemory');
-      // garante recarregar o jogo para resetar (opcional)
       const fr = document.getElementById('frameMemory');
-      if (fr) fr.contentWindow?.location?.reload?.();
+      // força um novo carregamento (evita tela branca após voltar do menu em GH Pages)
+      setIframeSrcFresh(fr, MEMORY_SRC);
+      show('screenMemory');
     }
 
     function startQuiz(){
       saveOptionalName();
-      show('screenQuiz');
       const fr = document.getElementById('frameQuiz');
-      if (!fr) return;
-
-      // Se o iframe foi descarregado (about:blank), apenas restaura e aguarda carregar.
-      if (fr.src && fr.src.endsWith('about:blank')) {
-        fr.src = 'quiz.html';
-        return;
-      }
-
-      // Se já está carregado, pode recarregar para resetar
-      try { fr.contentWindow.location.reload(); } catch(e) {}
+      setIframeSrcFresh(fr, QUIZ_SRC);
+      show('screenQuiz');
     }
 
     function resetIframes(){
   const mem = document.getElementById('frameMemory');
   const quiz = document.getElementById('frameQuiz');
   // descarrega para parar timers/áudio
-  if (mem) mem.src = 'about:blank';
-  if (quiz) quiz.src = 'about:blank';
+  if (mem) { mem.src = 'about:blank'; }
+  if (quiz){ quiz.src = 'about:blank'; }
 }
 
-function restoreIframes(){
-  const mem = document.getElementById('frameMemory');
-  const quiz = document.getElementById('frameQuiz');
-  if (mem && mem.src.endsWith('about:blank')) mem.src = 'memoria.html';
-  if (quiz && quiz.src.endsWith('about:blank')) quiz.src = 'quiz.html';
+// Em GitHub Pages alguns browsers mantêm estado do iframe; para garantir novo start,
+// usamos cachebuster sempre que entrar no jogo.
+function setIframeSrcFresh(frame, base){
+  if (!frame) return;
+  const sep = base.includes('?') ? '&' : '?';
+  frame.src = `${base}${sep}t=${Date.now()}`;
 }
 
 // Recebe pedido de "voltar menu" vindo dos iframes
